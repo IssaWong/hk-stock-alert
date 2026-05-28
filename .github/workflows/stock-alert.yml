@@ -1,0 +1,54 @@
+name: 港股告警監控
+
+on:
+  schedule:
+    # HKT = UTC+8，覆蓋港股交易時段 09:30–16:00 HKT
+    - cron: '30,45 1 * * 1-5'              # 09:30, 09:45 HKT
+    - cron: '0,15,30,45 2,3,4,5,6,7 * * 1-5'  # 10:00–15:45 HKT
+    - cron: '0 8 * * 1-5'                  # 16:00 HKT
+  workflow_dispatch:                        # 手動觸發（測試用）
+
+jobs:
+  check-alerts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get HKT date/timestamp
+        id: today
+        run: |
+          echo "date=$(TZ='Asia/Hong_Kong' date +%Y-%m-%d)" >> $GITHUB_OUTPUT
+          echo "ts=$(TZ='Asia/Hong_Kong' date +%Y-%m-%d-%H%M)" >> $GITHUB_OUTPUT
+
+      - name: Restore state cache
+        uses: actions/cache/restore@v4
+        with:
+          path: state/
+          key: state-${{ steps.today.outputs.ts }}
+          restore-keys: |
+            state-${{ steps.today.outputs.date }}-
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run alert check
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+        run: python check_alerts.py
+
+      - name: Save state cache
+        uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: state/
+          key: state-${{ steps.today.outputs.ts }}

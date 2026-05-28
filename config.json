@@ -1,0 +1,18 @@
+{
+  "timezone": "Asia/Hong_Kong",
+  "stocks": [
+    {
+      "code": "2577.HK",
+      "name": "英諾賽科",
+      "alerts": [
+        {
+          "id": "2577_price_above_85",
+          "type": "price_above",
+          "value": 85.00,
+          "label": "升破目標價 HKD 85.00",
+          "once_per_day": true
+        }
+      ]
+    }
+  ]
+}

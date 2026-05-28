@@ -1,0 +1,6 @@
+CLAUDE.md
+stock_alert.sh
+state/state.json
+__pycache__/
+*.pyc
+.DS_Store
