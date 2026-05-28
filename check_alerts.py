@@ -34,10 +34,13 @@ def get_price(code):
     ticker = yf.Ticker(code)
     hist = ticker.history(period='1d', interval='1m')
     if hist.empty:
-        return None, None
-    current = float(hist['Close'].iloc[-1])
+        return None, None, None, None, None
+    current   = float(hist['Close'].iloc[-1])
+    day_open  = float(hist['Open'].iloc[0])
+    day_high  = float(hist['High'].max())
+    day_low   = float(hist['Low'].min())
     prev_close = float(ticker.fast_info.previous_close or 0) or None
-    return current, prev_close
+    return current, prev_close, day_open, day_high, day_low
 
 
 def check_condition(alert_type, value, current, prev_close):
@@ -50,6 +53,46 @@ def check_condition(alert_type, value, current, prev_close):
     elif alert_type == 'rise_pct' and prev_close:
         return (current - prev_close) / prev_close * 100 >= value
     return False
+
+
+def build_message(name, code, alert, current, prev_close, day_open, day_high, day_low, change_pct, now):
+    is_hk = code.upper().endswith('.HK')
+    currency = 'HKD ' if is_hk else ''
+
+    alert_type = alert['type']
+    label      = alert.get('label', alert['id'])
+
+    if 'drop' in alert_type:
+        emoji = '🚨'
+    elif alert_type == 'price_above':
+        emoji = '🎯'
+    elif alert_type == 'price_below':
+        emoji = '🔻'
+    else:
+        emoji = '🚀'
+
+    sign = '+' if change_pct >= 0 else ''
+    lines = [
+        f'{emoji} {name} ({code})',
+        '',
+        f'⚡ 觸發條件：{label}',
+        f'💰 現　　價：{currency}{current:.3f}（{sign}{change_pct:.2f}%）',
+        f'📊 今日行情：開 {currency}{day_open:.3f} ｜ 高 {currency}{day_high:.3f} ｜ 低 {currency}{day_low:.3f}',
+    ]
+
+    if prev_close:
+        lines.append(f'📌 昨日收盤：{currency}{prev_close:.3f}')
+
+    # 目標價告警額外顯示距離
+    if alert_type in ('price_above', 'price_below') and prev_close:
+        target = alert['value']
+        diff_pct = (current - target) / target * 100
+        sign2 = '+' if diff_pct >= 0 else ''
+        lines.append(f'📍 距目標價：{sign2}{diff_pct:.2f}%')
+
+    lines.append(f'⏰ 觸發時間：{now.strftime("%Y-%m-%d %H:%M HKT")}')
+
+    return '\n'.join(lines)
 
 
 def send_telegram(message):
@@ -89,7 +132,7 @@ def notify(channels, title, message):
             if token:
                 send_pushplus(token, title, message)
             else:
-                print(f'    Warning: secret {channel} not set in environment')
+                print(f'    Warning: secret {channel} not set')
 
 
 def main():
@@ -103,12 +146,12 @@ def main():
     state = load_state(today)
 
     for stock in config['stocks']:
-        code = stock['code']
-        name = stock['name']
+        code     = stock['code']
+        name     = stock['name']
         channels = stock.get('notify', ['PUSHPLUS_TOKEN', 'TELEGRAM'])
 
         try:
-            current, prev_close = get_price(code)
+            current, prev_close, day_open, day_high, day_low = get_price(code)
         except Exception as e:
             print(f'  {code}: fetch error — {e}')
             continue
@@ -127,16 +170,12 @@ def main():
                 continue
 
             if check_condition(alert['type'], alert['value'], current, prev_close):
-                label = alert.get('label', alert_id)
-                emoji = '🚨' if 'drop' in alert['type'] else '🎯'
-                title = f'{emoji} {name}({code}) 告警'
-                message = (
-                    f'{emoji} {name} ({code}) 告警觸發\n\n'
-                    f'條件：{label}\n'
-                    f'當前價格：{current:.3f}\n'
-                    f'今日漲跌：{change_pct:+.2f}%\n'
-                    f'觸發時間：{now.strftime("%Y-%m-%d %H:%M HKT")}'
-                )
+                label   = alert.get('label', alert_id)
+                emoji   = '🚨' if 'drop' in alert['type'] else '🎯'
+                title   = f'{emoji} {name}({code}) 告警'
+                message = build_message(name, code, alert, current, prev_close,
+                                        day_open, day_high, day_low, change_pct, now)
+
                 notify(channels, title, message)
                 print(f'    [{alert_id}] TRIGGERED')
 
