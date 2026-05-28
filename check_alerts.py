@@ -68,10 +68,7 @@ def send_telegram(message):
         print(f'    Telegram error: {e}')
 
 
-def send_pushplus(title, message):
-    token = os.environ.get('PUSHPLUS_TOKEN')
-    if not token:
-        return
+def send_pushplus(token, title, message):
     try:
         resp = requests.post(
             'http://www.pushplus.plus/send',
@@ -83,9 +80,16 @@ def send_pushplus(title, message):
         print(f'    PushPlus error: {e}')
 
 
-def notify(title, message):
-    send_telegram(message)
-    send_pushplus(title, message)
+def notify(channels, title, message):
+    for channel in channels:
+        if channel == 'TELEGRAM':
+            send_telegram(message)
+        else:
+            token = os.environ.get(channel)
+            if token:
+                send_pushplus(token, title, message)
+            else:
+                print(f'    Warning: secret {channel} not set in environment')
 
 
 def main():
@@ -94,13 +98,14 @@ def main():
     now = datetime.now(tz)
     today = now.strftime('%Y-%m-%d')
 
-    print(f"[{now.strftime('%Y-%m-%d %H:%M:%S %Z')}] Alert check started")
+    print(f"[{now.strftime('%Y-%m-%d %H:%M:%S %Z')}] Alert check started — {len(config['stocks'])} stocks")
 
     state = load_state(today)
 
     for stock in config['stocks']:
         code = stock['code']
         name = stock['name']
+        channels = stock.get('notify', ['PUSHPLUS_TOKEN', 'TELEGRAM'])
 
         try:
             current, prev_close = get_price(code)
@@ -113,13 +118,12 @@ def main():
             continue
 
         change_pct = (current - prev_close) / prev_close * 100 if prev_close else 0
-        print(f'  {name} ({code}): HKD {current:.3f}  {change_pct:+.2f}%')
+        print(f'  {name} ({code}): {current:.3f}  {change_pct:+.2f}%')
 
         for alert in stock.get('alerts', []):
             alert_id = alert['id']
 
             if alert.get('once_per_day') and state['alerted'].get(alert_id):
-                print(f'    [{alert_id}] skipped — already notified today')
                 continue
 
             if check_condition(alert['type'], alert['value'], current, prev_close):
@@ -129,11 +133,11 @@ def main():
                 message = (
                     f'{emoji} {name} ({code}) 告警觸發\n\n'
                     f'條件：{label}\n'
-                    f'當前價格：HKD {current:.3f}\n'
+                    f'當前價格：{current:.3f}\n'
                     f'今日漲跌：{change_pct:+.2f}%\n'
                     f'觸發時間：{now.strftime("%Y-%m-%d %H:%M HKT")}'
                 )
-                notify(title, message)
+                notify(channels, title, message)
                 print(f'    [{alert_id}] TRIGGERED')
 
                 if alert.get('once_per_day'):
