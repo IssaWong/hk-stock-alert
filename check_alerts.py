@@ -21,7 +21,7 @@ def load_state(today):
             state = json.load(f)
         if state.get('date') == today:
             return state
-    return {'date': today, 'alerted': {}}
+    return {'date': today, 'levels': {}}
 
 
 def save_state(state):
@@ -54,6 +54,26 @@ def is_trading_hours(code, now):
         return (9*60+30 <= t < 12*60) or (13*60 <= t <= 16*60)
     else:  # .SS 或 .SZ
         return (9*60+30 <= t < 11*60+30) or (13*60 <= t <= 15*60)
+
+
+def get_direction(alert_type):
+    """返回告警方向：'up'（升）或 'down'（跌）。"""
+    if alert_type in ('rise_pct', 'price_above'):
+        return 'up'
+    elif alert_type in ('drop_pct', 'price_below'):
+        return 'down'
+    return None
+
+
+def find_most_extreme(alerts, direction):
+    """同方向已觸發的告警中找最極端的一個。
+    升方向：value 最大（+10% > +5%）
+    跌方向：value 最小（-10% < -5%）
+    """
+    if not alerts:
+        return None
+    return max(alerts, key=lambda a: a['value']) if direction == 'up' \
+        else min(alerts, key=lambda a: a['value'])
 
 
 def check_condition(alert_type, value, current, prev_close):
@@ -180,26 +200,47 @@ def main():
         change_pct = (current - prev_close) / prev_close * 100 if prev_close else 0
         print(f'  {name} ({code}): {current:.3f}  {change_pct:+.2f}%')
 
-        for alert in stock.get('alerts', []):
-            alert_id = alert['id']
+        # 初始化本股票的方向層級狀態
+        levels = state.setdefault('levels', {})
+        if code not in levels:
+            levels[code] = {'up': None, 'down': None}
 
-            if alert.get('once_per_day') and state['alerted'].get(alert_id):
+        # 收集各方向目前觸發的告警
+        triggered_by_dir = {'up': [], 'down': []}
+        for alert in stock.get('alerts', []):
+            if check_condition(alert['type'], alert['value'], current, prev_close):
+                d = get_direction(alert['type'])
+                if d:
+                    triggered_by_dir[d].append(alert)
+                print(f'    [{alert["id"]}] condition met')
+            else:
+                print(f'    [{alert["id"]}] not triggered')
+
+        # 按方向比較層級，僅在層級變化時推送
+        for direction in ('up', 'down'):
+            most_extreme    = find_most_extreme(triggered_by_dir[direction], direction)
+            current_lvl_id  = most_extreme['id'] if most_extreme else None
+            last_lvl_id     = levels[code].get(direction)
+
+            levels[code][direction] = current_lvl_id   # 更新狀態
+
+            if current_lvl_id == last_lvl_id:
+                if current_lvl_id:
+                    print(f'    [{direction}] 層級不變（{current_lvl_id}），跳過')
                 continue
 
-            if check_condition(alert['type'], alert['value'], current, prev_close):
-                label   = alert.get('label', alert_id)
-                emoji   = '🚨' if 'drop' in alert['type'] else '🎯'
-                title   = f'{emoji} {name}({code}) 告警'
-                message = build_message(name, code, alert, current, prev_close,
-                                        day_open, day_high, day_low, change_pct, now)
+            if current_lvl_id is None:
+                # 告警解除，靜默重置
+                print(f'    [{direction}] 解除（{last_lvl_id} → 無告警）')
+                continue
 
-                notify(channels, title, message)
-                print(f'    [{alert_id}] TRIGGERED')
-
-                if alert.get('once_per_day'):
-                    state['alerted'][alert_id] = True
-            else:
-                print(f'    [{alert_id}] not triggered')
+            # 層級變化（首次 / 升級 / 降級）→ 推送
+            print(f'    [{direction}] 層級變化：{last_lvl_id} → {current_lvl_id}  TRIGGERED')
+            emoji   = '🚨' if direction == 'down' else ('🎯' if most_extreme['type'] == 'price_above' else '🚀')
+            title   = f'{emoji} {name}({code}) 告警'
+            message = build_message(name, code, most_extreme, current, prev_close,
+                                    day_open, day_high, day_low, change_pct, now)
+            notify(channels, title, message)
 
     save_state(state)
     print('Done.')
