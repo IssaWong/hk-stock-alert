@@ -43,6 +43,19 @@ def get_price(code):
     return current, prev_close, day_open, day_high, day_low
 
 
+def is_trading_hours(code, now):
+    """判斷當前時間是否在該股票的交易時段內（以 HKT 為基準）。
+    港股  .HK : 09:30–12:00, 13:00–16:00 HKT
+    A股 .SS/.SZ: 09:30–11:30, 13:00–15:00 HKT（CST = HKT）
+    """
+    t = now.hour * 60 + now.minute   # 距午夜的分鐘數
+    code_upper = code.upper()
+    if code_upper.endswith('.HK'):
+        return (9*60+30 <= t < 12*60) or (13*60 <= t <= 16*60)
+    else:  # .SS 或 .SZ
+        return (9*60+30 <= t < 11*60+30) or (13*60 <= t <= 15*60)
+
+
 def check_condition(alert_type, value, current, prev_close):
     if alert_type == 'price_above':
         return current >= value
@@ -149,6 +162,10 @@ def main():
         code     = stock['code']
         name     = stock['name']
         channels = stock.get('notify', ['PUSHPLUS_TOKEN', 'TELEGRAM'])
+
+        if not is_trading_hours(code, now):
+            print(f'  {name} ({code}): 休市，跳過')
+            continue
 
         try:
             current, prev_close, day_open, day_high, day_low = get_price(code)
