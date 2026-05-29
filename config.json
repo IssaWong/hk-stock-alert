@@ -6,10 +6,10 @@
       "name": "康方生物",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "9926_drop_5",  "type": "drop_pct",  "value": -5,  "label": "跌幅 -5%",       "once_per_day": true},
-        {"id": "9926_drop_10", "type": "drop_pct",  "value": -10, "label": "跌幅 -10%",      "once_per_day": true},
-        {"id": "9926_rise_5",  "type": "rise_pct",  "value": 5,   "label": "升幅 +5%",       "once_per_day": true},
-        {"id": "9926_rise_10", "type": "rise_pct",  "value": 10,  "label": "升幅 +10%",      "once_per_day": true}
+        {"id": "9926_drop_5",  "type": "drop_pct",  "value": -5,  "label": "跌幅 -5%",       "once_per_day": false},
+        {"id": "9926_drop_10", "type": "drop_pct",  "value": -10, "label": "跌幅 -10%",      "once_per_day": false},
+        {"id": "9926_rise_5",  "type": "rise_pct",  "value": 5,   "label": "升幅 +5%",       "once_per_day": false},
+        {"id": "9926_rise_10", "type": "rise_pct",  "value": 10,  "label": "升幅 +10%",      "once_per_day": false}
       ]
     },
     {
@@ -17,10 +17,10 @@
       "name": "剑桥科技",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "603083_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": true},
-        {"id": "603083_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": true},
-        {"id": "603083_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": true},
-        {"id": "603083_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": true}
+        {"id": "603083_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": false},
+        {"id": "603083_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": false},
+        {"id": "603083_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": false},
+        {"id": "603083_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": false}
       ]
     },
     {
@@ -28,10 +28,10 @@
       "name": "联特科技",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "301205_drop_5",  "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": true},
-        {"id": "301205_drop_19", "type": "drop_pct", "value": -19, "label": "接近跌停 -19%",  "once_per_day": true},
-        {"id": "301205_rise_5",  "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": true},
-        {"id": "301205_rise_19", "type": "rise_pct", "value": 19,  "label": "接近漲停 +19%",  "once_per_day": true}
+        {"id": "301205_drop_5",  "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": false},
+        {"id": "301205_drop_19", "type": "drop_pct", "value": -19, "label": "接近跌停 -19%",  "once_per_day": false},
+        {"id": "301205_rise_5",  "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": false},
+        {"id": "301205_rise_19", "type": "rise_pct", "value": 19,  "label": "接近漲停 +19%",  "once_per_day": false}
       ]
     },
     {
@@ -39,10 +39,10 @@
       "name": "中国巨石",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "600176_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": true},
-        {"id": "600176_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": true},
-        {"id": "600176_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": true},
-        {"id": "600176_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": true}
+        {"id": "600176_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": false},
+        {"id": "600176_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": false},
+        {"id": "600176_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": false},
+        {"id": "600176_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": false}
       ]
     },
     {
@@ -50,11 +50,11 @@
       "name": "英诺赛科",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "2577_price_above_85", "type": "price_above", "value": 85.0, "label": "升破目標價 HKD 85.00", "once_per_day": true},
-        {"id": "2577_drop_5",         "type": "drop_pct",    "value": -5,   "label": "跌幅 -5%",            "once_per_day": true},
-        {"id": "2577_drop_10",        "type": "drop_pct",    "value": -10,  "label": "跌幅 -10%",           "once_per_day": true},
-        {"id": "2577_rise_5",         "type": "rise_pct",    "value": 5,    "label": "升幅 +5%",            "once_per_day": true},
-        {"id": "2577_rise_10",        "type": "rise_pct",    "value": 10,   "label": "升幅 +10%",           "once_per_day": true}
+        {"id": "2577_price_above_85", "type": "price_above", "value": 85.0, "label": "升破目標價 HKD 85.00", "once_per_day": false},
+        {"id": "2577_drop_5",         "type": "drop_pct",    "value": -5,   "label": "跌幅 -5%",            "once_per_day": false},
+        {"id": "2577_drop_10",        "type": "drop_pct",    "value": -10,  "label": "跌幅 -10%",           "once_per_day": false},
+        {"id": "2577_rise_5",         "type": "rise_pct",    "value": 5,    "label": "升幅 +5%",            "once_per_day": false},
+        {"id": "2577_rise_10",        "type": "rise_pct",    "value": 10,   "label": "升幅 +10%",           "once_per_day": false}
       ]
     },
     {
@@ -62,10 +62,10 @@
       "name": "华灿光电",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "300323_drop_5",  "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": true},
-        {"id": "300323_drop_19", "type": "drop_pct", "value": -19, "label": "接近跌停 -19%",  "once_per_day": true},
-        {"id": "300323_rise_5",  "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": true},
-        {"id": "300323_rise_19", "type": "rise_pct", "value": 19,  "label": "接近漲停 +19%",  "once_per_day": true}
+        {"id": "300323_drop_5",  "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": false},
+        {"id": "300323_drop_19", "type": "drop_pct", "value": -19, "label": "接近跌停 -19%",  "once_per_day": false},
+        {"id": "300323_rise_5",  "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": false},
+        {"id": "300323_rise_19", "type": "rise_pct", "value": 19,  "label": "接近漲停 +19%",  "once_per_day": false}
       ]
     },
     {
@@ -73,10 +73,10 @@
       "name": "宏景科技",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "301396_drop_5",  "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": true},
-        {"id": "301396_drop_19", "type": "drop_pct", "value": -19, "label": "接近跌停 -19%",  "once_per_day": true},
-        {"id": "301396_rise_5",  "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": true},
-        {"id": "301396_rise_19", "type": "rise_pct", "value": 19,  "label": "接近漲停 +19%",  "once_per_day": true}
+        {"id": "301396_drop_5",  "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": false},
+        {"id": "301396_drop_19", "type": "drop_pct", "value": -19, "label": "接近跌停 -19%",  "once_per_day": false},
+        {"id": "301396_rise_5",  "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": false},
+        {"id": "301396_rise_19", "type": "rise_pct", "value": 19,  "label": "接近漲停 +19%",  "once_per_day": false}
       ]
     },
     {
@@ -84,10 +84,10 @@
       "name": "特发信息",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "000070_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": true},
-        {"id": "000070_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": true},
-        {"id": "000070_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": true},
-        {"id": "000070_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": true}
+        {"id": "000070_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": false},
+        {"id": "000070_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": false},
+        {"id": "000070_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": false},
+        {"id": "000070_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": false}
       ]
     },
     {
@@ -95,10 +95,10 @@
       "name": "亨通光电",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "600487_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": true},
-        {"id": "600487_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": true},
-        {"id": "600487_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": true},
-        {"id": "600487_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": true}
+        {"id": "600487_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": false},
+        {"id": "600487_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": false},
+        {"id": "600487_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": false},
+        {"id": "600487_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": false}
       ]
     },
     {
@@ -106,10 +106,10 @@
       "name": "烽火通信",
       "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"],
       "alerts": [
-        {"id": "600498_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": true},
-        {"id": "600498_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": true},
-        {"id": "600498_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": true},
-        {"id": "600498_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": true}
+        {"id": "600498_drop_5", "type": "drop_pct", "value": -5,  "label": "跌幅 -5%",       "once_per_day": false},
+        {"id": "600498_drop_9", "type": "drop_pct", "value": -9,  "label": "接近跌停 -9%",   "once_per_day": false},
+        {"id": "600498_rise_5", "type": "rise_pct", "value": 5,   "label": "升幅 +5%",       "once_per_day": false},
+        {"id": "600498_rise_9", "type": "rise_pct", "value": 9,   "label": "接近漲停 +9%",   "once_per_day": false}
       ]
     }
   ]
