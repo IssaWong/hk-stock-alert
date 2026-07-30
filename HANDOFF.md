@@ -70,6 +70,8 @@ Dependabot。本地 26／26 測試與 10／10 真實 smoke test 通過；雲端�
   至小型常駐主機，而不是繼續增加 dispatch 重試。
 - 2026-07-30 的兩個 `dry_run=true` dispatch 均獲 API 以 HTTP 204 接受，但長時間
   queued 且沒有 job；此為 GitHub runner／queue 層未完成，不能當成程式成功或失敗。
+- 舊告警 workflow 的 queued run 無法普通或強制取消，GitHub 均返回 500；正式入口
+  已換成 `.github/workflows/stock-alert-v2.yml`，舊 workflow ID 不再使用。
 - cron-job.org 下一個正式執行窗口為 2026-07-31 09:00 HKT；首輪正式通知與狀態
   持久化仍待交易時段實證。
 - PushPlus、Telegram 舊憑證仍視為已暴露；cron-job.org 全局 API key 可能被其他

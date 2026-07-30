@@ -29,7 +29,7 @@ cron-job.org 在工作日粗略時段每 2 分鐘觸發，程式再按正式交�
 |---|---|
 | `config.json` | 股票、通知路由及告警門檻 |
 | `check_alerts.py` | 行情、告警、去重及通知邏輯 |
-| `.github/workflows/stock-alert.yml` | GitHub Actions 執行流程 |
+| `.github/workflows/stock-alert-v2.yml` | GitHub Actions 執行流程 |
 | `tests/test_check_alerts.py` | 核心回歸測試 |
 | `CONTEXT.md` | 業務背景與架構邊界 |
 | `HANDOFF.md` | 運維交接與下一步 |
@@ -112,7 +112,8 @@ cron-job.org 另持有一個只用於觸發 workflow 的 GitHub 憑證。
 截至 2026-07-30 20:00 HKT：
 
 - 接管版本已經由 PR #1 及 PR #2 合併至 `main`，遠端 commit 為 `80c57fd`。
-- `股票波動告警監控` workflow 已恢復為 active。
+- `股票波動告警監控 v2` 是正式入口；舊 workflow ID 因 GitHub 端無法取消的 queued
+  狀態而退役。
 - cron-job.org job `7693116` 已啟用，排程已收窄至
   `*/2 9-11,13-15 * * 1-5`；下一個正式窗口為 2026-07-31 09:00 HKT。
 - cron 觸發憑證已換成只限本倉庫、只限 Actions 讀寫、90 日有效的 fine-grained

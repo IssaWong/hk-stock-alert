@@ -11,6 +11,8 @@
   新的 `v2` 串行 group，避開舊 workflow-level 卡死狀態。validation 不再讀寫
   production state cache。
 - cache 保存由 `always()` 改為排除已取消 run。
+- 舊告警 workflow 的 queued run 無法取消且 GitHub 返回 500；正式入口更名為
+  `stock-alert-v2.yml`，以新的 workflow ID 繞開損壞的舊佇列狀態。
 
 ### Supply chain
 
