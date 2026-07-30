@@ -1,6 +1,6 @@
 # CONTEXT | Stock Market Volatility Alert
 
-Last updated: 2026-07-28
+Last updated: 2026-07-30
 
 ## 維護權責
 
@@ -27,8 +27,8 @@ cron-job.org（工作日交易窗口，每 2 分鐘）
 
 GitHub 內建 `schedule` 已從本地接管版本移除，避免與外部排程重疊。
 運行狀態暫以 GitHub Actions Cache 在同一交易日內銜接。
-外部 job `7693116` 現行 cron 是 `*/2 9-16 * * 1-5`；部署時建議收窄為
-`*/2 9-11,13-15 * * 1-5`，精確開市、午休、收市及假期仍由交易日曆判斷。
+外部 job `7693116` 現行 cron 是 `*/2 9-11,13-15 * * 1-5`；精確開市、午休、
+收市及假期仍由交易日曆判斷。
 
 ## 不變邊界
 
@@ -53,8 +53,23 @@ GitHub 內建 `schedule` 已從本地接管版本移除，避免與外部排程�
 - 本地 22 項單元測試、配置驗證、依賴檢查、YAML 解析及秘密掃描全部通過。
 - 本地接管改造尚未推送，遠端仍停留在 `0076777`。
 
+## 2026-07-30 雲端接管快照
+
+- PR #1（可靠性、安全及運維接管）與 PR #2（雲端 `dry_run`）已 squash merge。
+- 遠端 `main` 為 `80c57fd`，workflow 已恢復 active。
+- cron-job.org job `7693116` 已啟用並收窄交易窗口；下一次為
+  2026-07-31 09:00 HKT。
+- cron PAT 已改為只限 `IssaWong/hk-stock-alert`、Actions read/write、90 日有效的
+  fine-grained PAT；舊 `cron-job-trigger` classic PAT 已撤銷。
+- 新 PAT 讀取 workflow 返回 HTTP 200，帶 `dry_run=true` 的 dispatch 返回
+  HTTP 204。
+- 兩個新版乾跑均卡在 GitHub queued、沒有分配 job；API 接通已驗證，但新版雲端
+  完整執行仍未驗收。
+- 2026-07-30 19:30 HKT 再驗證：22／22 測試通過，10／10 股票取得同日批量行情。
+
 ## 最高優先事項
 
 曾出現在舊 `CLAUDE.md`、舊 shell、舊本機權限配置及對話存檔內的所有憑證均視為
-已暴露。必須輪換 Telegram、PushPlus、cron-job.org API key 及 cron 觸發用 GitHub
-PAT；在輪換前不得稱安全整改完成。
+已暴露。cron 觸發 GitHub PAT 已完成輪換並撤銷舊 PAT；Telegram、PushPlus 及可能
+影響其他 job 的 cron-job.org 全局 API key 尚待輪換。在全部完成前不得稱安全整改
+完成。

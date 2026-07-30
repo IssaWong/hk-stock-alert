@@ -1,6 +1,6 @@
 # HANDOFF | Stock Market Volatility Alert
 
-Last updated: 2026-07-28
+Last updated: 2026-07-30
 
 ## 接管決定
 
@@ -10,13 +10,17 @@ Last updated: 2026-07-28
 
 ## 當前狀態
 
-`LOCAL_VALIDATED_REMOTE_DISABLED_AWAITING_GITHUB_LOGIN_AND_DEPLOYMENT`
+`DEPLOYED_SCHEDULER_ACTIVE_CLOUD_RUNNER_QUEUED_CREDENTIAL_ROTATION_PARTIAL`
 
-本地已完成核心可靠性、安全及文檔接管改造，並通過配置、22 項單元測試、
-依賴一致性、YAML、秘密掃描及 10／10 股票行情驗證。遠端仍是舊基線
-`0076777`，且 GitHub 已於 2026-07-28 15:59 HKT 因 60 天沒有倉庫提交而自動停用
-workflow；cron-job.org 隨後每 2 分鐘收到 `422 Unprocessable Entity`。正式告警
-現時停止。不要把本地完成誤報為雲端已上線。
+本地接管版本已經部署至遠端 `main`（`80c57fd`），GitHub workflow 已恢復 active，
+cron-job.org job `7693116` 已啟用並改為 `*/2 9-11,13-15 * * 1-5`。新的
+fine-grained PAT 只限本倉庫及 Actions 讀寫，2026-10-28 到期；舊的無到期日
+classic PAT 已撤銷。新 PAT 讀取 workflow 返回 HTTP 200，乾跑 dispatch 返回
+HTTP 204。
+
+本地 22 項測試、配置、依賴、編譯及 10／10 當日行情驗證通過；但 2026-07-30
+發出的兩個雲端乾跑仍停留 queued 且沒有 job，尚未取得新版完整雲端執行日誌。
+因此可稱「已部署、排程已接通」，不可稱「新版雲端執行已完全驗收」。
 
 ## 接手順序
 
@@ -24,10 +28,11 @@ workflow；cron-job.org 隨後每 2 分鐘收到 `422 Unprocessable Entity`。�
 2. 查看 `git status`，保留未提交對話存檔及用戶資料。
 3. 用 Python 3.11+ 安裝 `requirements.txt`。
 4. 執行 `--check-config`、單元測試、`--dry-run`。
-5. 取得用戶明確確認後，輪換四類外部憑證。
-6. 安裝並登入 GitHub CLI，或在已登入 GitHub 的瀏覽器重新授權。
-7. 推送本地改造至 `main`，重新啟用 workflow。
-8. 觀察首個外部 dispatch 的完整日誌及通知結果。
+5. 查看最新 GitHub Actions run；若 queued 已解除，檢查完整日誌及乾跑結果。
+6. 在下一個交易窗口觀察 job `7693116` 的首次正式 dispatch。
+7. 輪換 PushPlus、Telegram，以及確認不影響其他 job 後再處理 cron-job.org
+   全局 API key。
+8. 於 2026-10-28 前續期或替換 `hk-stock-alert-cron-job` fine-grained PAT。
 
 ## 上線驗收
 
@@ -41,7 +46,7 @@ workflow；cron-job.org 隨後每 2 分鐘收到 `422 Unprocessable Entity`。�
 - 批量行情缺失時逐股回退，10 隻股票全部得到有效當日 snapshot。
 - PushPlus 使用 HTTPS；HTTP／API 失敗不寫入成功去重狀態。
 - 系統錯誤通知按簽名及 30 分鐘冷卻去重；健康摘要每日最多一次。
-- 新 Token 已更新，舊 Token／PAT／API key 已撤銷。
+- cron 觸發 PAT 已更新且舊 PAT 已撤銷；通知 Token 及全局 API key 仍待處理。
 - Git 追蹤文件與歷史掃描沒有明文秘密。
 
 ## 未決風險
@@ -51,8 +56,9 @@ workflow；cron-job.org 隨後每 2 分鐘收到 `422 Unprocessable Entity`。�
 - 每 2 分鐘頻率仍會放大 Yahoo Finance 限流風險；目前已改用批量請求及逐股回退，
   若再擴大股票數量應評估正式市場數據供應商。
 - `exchange-calendars 4.13.2` 在 NumPy 新版本會輸出上游棄用警告，目前不影響結果。
-- GitHub workflow 已停用；未完成登入、重新啟用、部署及首輪雲端驗證前不可稱恢復。
-- cron-job.org 帳號可正常登入、job `7693116` 存在，但停用期間會持續留下 422
-  失敗紀錄。
-- 現行 cron 為 `*/2 9-16 * * 1-5`，包含午休及收市後無效觸發；建議部署時改為
-  `*/2 9-11,13-15 * * 1-5`，程式交易日曆繼續負責 09:30 前及正式休市過濾。
+- 2026-07-30 的兩個 `dry_run=true` dispatch 均獲 API 以 HTTP 204 接受，但長時間
+  queued 且沒有 job；此為 GitHub runner／queue 層未完成，不能當成程式成功或失敗。
+- cron-job.org 下一個正式執行窗口為 2026-07-31 09:00 HKT；首輪正式通知與狀態
+  持久化仍待交易時段實證。
+- PushPlus、Telegram 舊憑證仍視為已暴露；cron-job.org 全局 API key 可能被其他
+  job 共用，未確認影響範圍前不可直接撤銷。

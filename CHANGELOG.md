@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## 2026-07-30 — 雲端接管與排程恢復
+
+### Deployed
+
+- PR #1 及 PR #2 已合併至 `main`；遠端接管版本為 `80c57fd`。
+- GitHub workflow 已恢復 active，並加入安全的手動 `dry_run` 輸入。
+- cron-job.org job `7693116` 已啟用，排程由 `*/2 9-16 * * 1-5` 收窄為
+  `*/2 9-11,13-15 * * 1-5`。
+
+### Security
+
+- 新建只限 `IssaWong/hk-stock-alert`、Actions read/write、90 日有效的
+  fine-grained PAT，並更新至 cron-job.org。
+- 撤銷舊 `cron-job-trigger` 無到期日 classic PAT。
+- 新 PAT 讀取 workflow 返回 HTTP 200，乾跑 dispatch 返回 HTTP 204。
+- PushPlus、Telegram 及 cron-job.org 全局 API key 尚待輪換。
+
+### Validation
+
+- 2026-07-30 重新通過 22／22 單元測試、配置、依賴及 Python 編譯檢查。
+- 10／10 股票取得 2026-07-30 同日批量行情。
+- 兩個新版雲端乾跑獲 API 接受，但仍停留 queued 且沒有 job；完整雲端執行日誌
+  尚待 GitHub runner 分配後驗收。
+
 ## 2026-07-28 — 深度接管（本地，未部署）
 
 ### Decision
