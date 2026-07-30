@@ -14,7 +14,8 @@
 
 ### Supply chain
 
-- Actions 固定至完整 commit SHA。
+- Actions 固定至完整 commit SHA，並升至 checkout 7.0.1、setup-python 7.0.0、
+  cache 6.1.0。
 - 新增 Python 3.11／3.12 CI 與每週 Dependabot。
 - `requests` 由 2.32.5 升至 2.34.2。
 
