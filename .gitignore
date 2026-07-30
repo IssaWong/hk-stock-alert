@@ -1,5 +1,9 @@
 CLAUDE.md
 stock_alert.sh
+01_2026-05-28_Stock Market Volatility Alert_e28588fc.md
+.claude/
+.env
+.venv/
 state/state.json
 __pycache__/
 *.pyc
