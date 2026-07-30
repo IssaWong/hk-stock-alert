@@ -7,7 +7,8 @@
 - 新增全天候 `--smoke-test`，以最近交易日行情驗證全部 10 隻股票。
 - 新增 20 分鐘陳舊行情門禁。
 - 新增多渠道通知續傳，部分成功後只重試失敗渠道。
-- validation 與 production 使用不同 concurrency group；validation 不再讀寫
+- concurrency 鎖移至 job 層；validation 使用逐 run 獨立 group，production 使用
+  新的 `v2` 串行 group，避開舊 workflow-level 卡死狀態。validation 不再讀寫
   production state cache。
 - cache 保存由 `always()` 改為排除已取消 run。
 

@@ -18,17 +18,18 @@ on:
 permissions:
   contents: read
 
-concurrency:
-  group: >-
-    stock-alert-${{
-      (inputs.dry_run || inputs.smoke_test) && 'validation' || 'production'
-    }}
-  cancel-in-progress: ${{ inputs.dry_run || inputs.smoke_test }}
-
 jobs:
   check-alerts:
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    concurrency:
+      group: >-
+        ${{
+          (inputs.dry_run || inputs.smoke_test)
+          && format('stock-alert-validation-{0}', github.run_id)
+          || 'stock-alert-production-v2'
+        }}
+      cancel-in-progress: false
 
     steps:
       - name: Checkout
