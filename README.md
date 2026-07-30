@@ -18,6 +18,8 @@ cron-job.org 在工作日粗略時段每 2 分鐘觸發，程式再按正式交�
 - 以港交所／上交所交易日曆判斷交易時段及正式假期
 - 批量抓取 10 隻股票，缺失代碼自動回退至單股重試
 - 0.5% 遲滯區間，降低價格在門檻附近反覆進出造成的噪音
+- 正式交易時段拒絕超過 20 分鐘的陳舊行情
+- 多渠道部分成功時只重試失敗渠道，避免重複通知
 - 行情連續兩次失敗或通知失敗時，運行明確標紅
 - 系統異常即時通知並按 30 分鐘冷卻去重；每個交易日收市前發健康摘要
 
@@ -32,22 +34,26 @@ cron-job.org 在工作日粗略時段每 2 分鐘觸發，程式再按正式交�
 | `CONTEXT.md` | 業務背景與架構邊界 |
 | `HANDOFF.md` | 運維交接與下一步 |
 | `AUDIT.md` | 2026-07-28 深度審計 |
+| `OPTIMIZATION_2026-07-30.md` | 第二輪深度優化、基準及架構建議 |
 
 ## 本機驗證
 
-需要 Python 3.11 或以上。
+需要 Python 3.11 或以上；macOS 內建 Python 3.9 不適用。
 
 ```bash
-python -m venv .venv
+python3.11 -m venv .venv
 .venv/bin/pip install -r requirements.txt
 .venv/bin/python check_alerts.py --check-config
 .venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python check_alerts.py --dry-run
+.venv/bin/python check_alerts.py --smoke-test
 ```
 
 `--dry-run` 會抓取及評估行情，但不發通知、不更新狀態。
-GitHub Actions 的手動執行頁亦提供 `dry_run` 選項，供雲端驗證使用；cron-job.org
-不傳此選項，因此正式排程仍會正常通知及保存狀態。
+在休市時，`--dry-run` 會正常跳過全部股票；`--smoke-test` 則會抓取最近交易日的
+10 隻股票，適合任何時段做真正的行情與依賴驗證。GitHub Actions 手動執行頁提供
+`dry_run` 及 `smoke_test` 選項；cron-job.org 不傳任何選項，因此正式排程仍會正常
+通知及保存狀態。
 
 ## 新增股票
 

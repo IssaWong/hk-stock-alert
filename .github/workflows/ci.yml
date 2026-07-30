@@ -1,0 +1,57 @@
+name: 程式質量檢查
+
+on:
+  pull_request:
+    paths:
+      - "**/*.py"
+      - "config.json"
+      - "requirements.txt"
+      - ".github/workflows/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.py"
+      - "config.json"
+      - "requirements.txt"
+      - ".github/workflows/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - "3.11"
+          - "3.12"
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+
+      - name: Set up Python
+        uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install --disable-pip-version-check -r requirements.txt
+
+      - name: Validate configuration
+        run: python check_alerts.py --check-config
+
+      - name: Compile Python
+        run: python -m py_compile check_alerts.py tests/test_check_alerts.py
+
+      - name: Run tests
+        run: python -m unittest discover -s tests -v

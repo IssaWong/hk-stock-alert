@@ -51,6 +51,12 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "升幅門檻"):
             check_alerts.validate_config(config)
 
+    def test_invalid_quote_delay_is_rejected(self):
+        config = copy.deepcopy(self.config)
+        config["max_quote_delay_minutes"] = 0
+        with self.assertRaisesRegex(ValueError, "max_quote_delay_minutes"):
+            check_alerts.validate_config(config)
+
 
 class TradingHoursTests(unittest.TestCase):
     def test_hk_market_sessions(self):
@@ -150,6 +156,7 @@ class StateTests(unittest.TestCase):
                     "levels": {},
                     "sent_today": {},
                     "health": {},
+                    "pending_notifications": {},
                 },
             )
 
@@ -198,6 +205,44 @@ class BatchPriceTests(unittest.TestCase):
         self.assertEqual(snapshot.day_high, 41.2)
         self.assertEqual(snapshot.delay_seconds, 120.0)
         self.assertEqual(snapshot.source, "yfinance-batch")
+
+    def test_snapshot_accepts_latest_session_outside_market_day(self):
+        code = "2577.HK"
+        intraday_frame = pd.DataFrame(
+            {
+                "Open": [40.0],
+                "High": [41.0],
+                "Low": [39.5],
+                "Close": [40.5],
+            },
+            index=pd.DatetimeIndex(["2026-07-31 15:59:00+08:00"]),
+        )
+        daily_frame = pd.DataFrame(
+            {"Close": [39.0, 40.5]},
+            index=pd.DatetimeIndex(["2026-07-30", "2026-07-31"]),
+        )
+        snapshot = check_alerts._snapshot_from_frames(
+            code,
+            pd.concat({code: intraday_frame}, axis=1),
+            pd.concat({code: daily_frame}, axis=1),
+            datetime(2026, 8, 1, 10, 0, tzinfo=HKT),
+        )
+        self.assertEqual(snapshot.latest_bar_time.date().isoformat(), "2026-07-31")
+        self.assertEqual(snapshot.previous_close, 39.0)
+
+    def test_quote_freshness_guard(self):
+        snapshot = check_alerts.PriceSnapshot(
+            current=40,
+            previous_close=39,
+            day_open=39.5,
+            day_high=40.5,
+            day_low=39,
+            latest_bar_time=datetime(2026, 7, 28, 10, 0, tzinfo=HKT),
+            delay_seconds=20 * 60,
+            source="test",
+        )
+        self.assertTrue(check_alerts._quote_is_fresh(snapshot, 20))
+        self.assertFalse(check_alerts._quote_is_fresh(snapshot, 19.9))
 
 
 class HealthSummaryTests(unittest.TestCase):
@@ -305,6 +350,44 @@ class NotificationTests(unittest.TestCase):
     def test_missing_notification_secret_fails_closed(self):
         self.assertFalse(
             check_alerts.notify(["PUSHPLUS_TOKEN"], "title", "message")
+        )
+
+    @patch("check_alerts.notify_with_results")
+    def test_partial_delivery_resumes_only_failed_channel(self, notify_results):
+        state = {"pending_notifications": {}}
+        key = check_alerts._delivery_key("2577.HK", "change_up", "rise_5")
+        notify_results.return_value = {
+            "PUSHPLUS_TOKEN": True,
+            "TELEGRAM": False,
+        }
+
+        delivered, failed = check_alerts.deliver_with_resume(
+            state,
+            key,
+            ["PUSHPLUS_TOKEN", "TELEGRAM"],
+            "title",
+            "message",
+        )
+
+        self.assertFalse(delivered)
+        self.assertEqual(failed, ["TELEGRAM"])
+        self.assertEqual(state["pending_notifications"][key], ["PUSHPLUS_TOKEN"])
+
+        notify_results.return_value = {"TELEGRAM": True}
+        delivered, failed = check_alerts.deliver_with_resume(
+            state,
+            key,
+            ["PUSHPLUS_TOKEN", "TELEGRAM"],
+            "title",
+            "message",
+        )
+
+        self.assertTrue(delivered)
+        self.assertEqual(failed, [])
+        self.assertNotIn(key, state["pending_notifications"])
+        self.assertEqual(
+            notify_results.call_args.args[0],
+            ["TELEGRAM"],
         )
 
 
