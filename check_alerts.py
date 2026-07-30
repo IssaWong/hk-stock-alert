@@ -5,7 +5,7 @@ import math
 import os
 import time
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import date, datetime
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional, Tuple
@@ -67,6 +67,14 @@ def validate_config(config: Dict[str, Any]) -> None:
     ):
         raise ValueError("system_alert.cooldown_minutes 必須是正數")
 
+    max_quote_delay = config.get("max_quote_delay_minutes", 20)
+    if (
+        not isinstance(max_quote_delay, (int, float))
+        or not math.isfinite(max_quote_delay)
+        or max_quote_delay <= 0
+    ):
+        raise ValueError("max_quote_delay_minutes 必須是正數")
+
     seen_codes = set()
     seen_alert_ids = set()
     for stock in config["stocks"]:
@@ -119,10 +127,17 @@ def load_state(today: str, path: Path = STATE_FILE) -> Dict[str, Any]:
                 state.setdefault("levels", {})
                 state.setdefault("sent_today", {})
                 state.setdefault("health", {})
+                state.setdefault("pending_notifications", {})
                 return state
         except (OSError, json.JSONDecodeError) as error:
             print(f"Warning: state 讀取失敗，重建當日狀態 — {error}")
-    return {"date": today, "levels": {}, "sent_today": {}, "health": {}}
+    return {
+        "date": today,
+        "levels": {},
+        "sent_today": {},
+        "health": {},
+        "pending_notifications": {},
+    }
 
 
 def save_state(state: Dict[str, Any], path: Path = STATE_FILE) -> None:
@@ -162,9 +177,12 @@ def get_price(
             if latest_bar_time.tzinfo is None:
                 latest_bar_time = latest_bar_time.replace(tzinfo=now.tzinfo)
             latest_bar_time = latest_bar_time.astimezone(now.tzinfo)
-            if latest_bar_time.date() != now.date():
+            expected_date = _expected_session_date(code, now)
+            if latest_bar_time.date() != expected_date:
                 raise RuntimeError(
-                    f"分鐘行情已過期：最新 bar 為 {latest_bar_time.isoformat()}"
+                    "分鐘行情不是最近交易日："
+                    f"預期 {expected_date.isoformat()}，"
+                    f"最新 bar 為 {latest_bar_time.isoformat()}"
                 )
 
             snapshot = PriceSnapshot(
@@ -229,12 +247,13 @@ def _snapshot_from_frames(
         index = index.tz_convert(now.tzinfo)
     intraday = intraday.copy()
     intraday.index = index
-    today_rows = intraday[intraday.index.date == now.date()]
+    expected_date = _expected_session_date(code, now)
+    today_rows = intraday[intraday.index.date == expected_date]
     if today_rows.empty:
-        raise RuntimeError("沒有當日分鐘行情")
+        raise RuntimeError(f"沒有最近交易日 {expected_date.isoformat()} 的分鐘行情")
 
     daily = _ticker_frame(daily_data, code).dropna(subset=["Close"])
-    previous_rows = daily[daily.index.date < now.date()]
+    previous_rows = daily[daily.index.date < expected_date]
     if previous_rows.empty:
         raise RuntimeError("沒有上一交易日收盤價")
 
@@ -335,6 +354,14 @@ def _market_calendar(code: str):
     return exchange_calendars.get_calendar(
         "XHKG" if code.upper().endswith(".HK") else "XSHG"
     )
+
+
+def _expected_session_date(code: str, now: datetime) -> date:
+    session = _market_calendar(code).date_to_session(
+        pd.Timestamp(now.date()),
+        direction="previous",
+    )
+    return session.date()
 
 
 def is_trading_hours(code: str, now: datetime) -> bool:
@@ -485,18 +512,75 @@ def send_pushplus(token: str, title: str, message: str) -> bool:
 
 
 def notify(channels: Iterable[str], title: str, message: str) -> bool:
-    results: List[bool] = []
-    for channel in channels:
+    results = notify_with_results(channels, title, message)
+    return bool(results) and all(results.values())
+
+
+def notify_with_results(
+    channels: Iterable[str],
+    title: str,
+    message: str,
+) -> Dict[str, bool]:
+    results: Dict[str, bool] = {}
+    for channel in dict.fromkeys(channels):
         if channel == "TELEGRAM":
-            results.append(send_telegram(message))
+            results[channel] = send_telegram(message)
             continue
         token = os.environ.get(channel)
         if not token:
             print(f"    PushPlus error: secret {channel} 未設定")
-            results.append(False)
+            results[channel] = False
             continue
-        results.append(send_pushplus(token, title, message))
-    return bool(results) and all(results)
+        results[channel] = send_pushplus(token, title, message)
+    return results
+
+
+def deliver_with_resume(
+    state: Dict[str, Any],
+    delivery_key: str,
+    channels: Iterable[str],
+    title: str,
+    message: str,
+) -> Tuple[bool, List[str]]:
+    ordered_channels = list(dict.fromkeys(channels))
+    pending = state.setdefault("pending_notifications", {})
+    already_sent = set(pending.get(delivery_key, []))
+    remaining = [
+        channel for channel in ordered_channels if channel not in already_sent
+    ]
+    results = notify_with_results(remaining, title, message)
+    successful = already_sent | {
+        channel for channel, succeeded in results.items() if succeeded
+    }
+    failed = [channel for channel in ordered_channels if channel not in successful]
+    if not failed:
+        pending.pop(delivery_key, None)
+        return True, []
+    pending[delivery_key] = [
+        channel for channel in ordered_channels if channel in successful
+    ]
+    return False, failed
+
+
+def _delivery_key(code: str, group: str, alert_id: str) -> str:
+    return f"{code}|{group}|{alert_id}"
+
+
+def _clear_pending_group(
+    state: Dict[str, Any],
+    code: str,
+    group: str,
+    keep: Optional[str] = None,
+) -> None:
+    pending = state.setdefault("pending_notifications", {})
+    prefix = f"{code}|{group}|"
+    for key in list(pending):
+        if key.startswith(prefix) and key != keep:
+            pending.pop(key, None)
+
+
+def _quote_is_fresh(snapshot: PriceSnapshot, max_delay_minutes: float) -> bool:
+    return snapshot.delay_seconds <= max_delay_minutes * 60
 
 
 def _migrate_legacy_levels(
@@ -652,14 +736,17 @@ def _clear_system_alert(state: Dict[str, Any]) -> None:
     health["last_error_notified_at"] = None
 
 
-def run(dry_run: bool = False) -> int:
+def run(dry_run: bool = False, smoke_test: bool = False) -> int:
+    if smoke_test:
+        dry_run = True
     config = load_config()
     timezone = ZoneInfo(config.get("timezone", "Asia/Hong_Kong"))
     now = datetime.now(timezone)
     today = now.strftime("%Y-%m-%d")
     print(
         f"[{now.strftime('%Y-%m-%d %H:%M:%S %Z')}] "
-        f"Alert check started — {len(config['stocks'])} stocks"
+        f"Alert check started — {len(config['stocks'])} stocks "
+        f"(mode={'smoke-test' if smoke_test else 'dry-run' if dry_run else 'production'})"
     )
 
     state = load_state(today)
@@ -669,9 +756,15 @@ def run(dry_run: bool = False) -> int:
     fetched_count = 0
     notification_count = 0
 
-    active_stocks = [
-        stock for stock in config["stocks"] if is_trading_hours(stock["code"], now)
-    ]
+    active_stocks = (
+        config["stocks"]
+        if smoke_test
+        else [
+            stock
+            for stock in config["stocks"]
+            if is_trading_hours(stock["code"], now)
+        ]
+    )
     snapshots, batch_errors = get_prices(
         (stock["code"] for stock in active_stocks),
         now,
@@ -683,13 +776,23 @@ def run(dry_run: bool = False) -> int:
         alerts = stock.get("alerts", [])
         channels = stock.get("notify", ["PUSHPLUS_TOKEN", "TELEGRAM"])
 
-        if not is_trading_hours(code, now):
+        if not smoke_test and not is_trading_hours(code, now):
             print(f"  {name} ({code}): 休市，跳過")
             continue
 
         snapshot = snapshots.get(code)
         if snapshot is None:
             message = f"{code}: fetch error — {batch_errors.get(code, '未知行情錯誤')}"
+            print(f"  {message}")
+            errors.append(message)
+            _record_fetch_failure(health, code)
+            continue
+        max_delay_minutes = float(config.get("max_quote_delay_minutes", 20))
+        if not smoke_test and not _quote_is_fresh(snapshot, max_delay_minutes):
+            message = (
+                f"{code}: 行情過期 — 延遲 {snapshot.delay_seconds / 60:.1f} 分鐘，"
+                f"上限 {max_delay_minutes:.1f} 分鐘"
+            )
             print(f"  {message}")
             errors.append(message)
             _record_fetch_failure(health, code)
@@ -755,11 +858,13 @@ def run(dry_run: bool = False) -> int:
                 if last_level_id:
                     print(f"    [{group}] 解除（{last_level_id} → 無告警）")
                 stock_levels[group] = None
+                _clear_pending_group(state, code, group)
                 continue
 
             if most_extreme.get("once_per_day") and current_level_id in sent_today:
                 print(f"    [{group}] 今日已通知（{current_level_id}），跳過")
                 stock_levels[group] = current_level_id
+                _clear_pending_group(state, code, group)
                 continue
 
             print(
@@ -784,14 +889,26 @@ def run(dry_run: bool = False) -> int:
             if dry_run:
                 print("    DRY RUN: 通知已略過，狀態不寫入")
                 continue
-            if notify(channels, title, message):
+            delivery_key = _delivery_key(code, group, current_level_id)
+            _clear_pending_group(state, code, group, keep=delivery_key)
+            delivered, failed_channels = deliver_with_resume(
+                state,
+                delivery_key,
+                channels,
+                title,
+                message,
+            )
+            if delivered:
                 stock_levels[group] = current_level_id
                 notification_count += 1
                 health["notifications"] += 1
                 if most_extreme.get("once_per_day"):
                     sent_today.append(current_level_id)
             else:
-                errors.append(f"{code}/{current_level_id}: 所有通知渠道未全部成功")
+                errors.append(
+                    f"{code}/{current_level_id}: 通知渠道未全部成功 "
+                    f"({', '.join(failed_channels)})"
+                )
 
     if _health_summary_due(config, state, now):
         summary_config = config["health_summary"]
@@ -823,7 +940,7 @@ def run(dry_run: bool = False) -> int:
         save_state(state)
     print(
         f"Done. fetched={fetched_count}, notifications={notification_count}, "
-        f"errors={len(errors)}, dry_run={dry_run}"
+        f"errors={len(errors)}, dry_run={dry_run}, smoke_test={smoke_test}"
     )
     if errors:
         for error in errors:
@@ -844,6 +961,11 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="只驗證 config.json",
     )
+    parser.add_argument(
+        "--smoke-test",
+        action="store_true",
+        help="任何時段驗證全部股票最近交易日行情，但不發通知、不更新狀態",
+    )
     return parser.parse_args()
 
 
@@ -854,7 +976,7 @@ def main() -> int:
         alert_count = sum(len(stock.get("alerts", [])) for stock in config["stocks"])
         print(f"Config OK: {len(config['stocks'])} stocks, {alert_count} alerts")
         return 0
-    return run(dry_run=args.dry_run)
+    return run(dry_run=args.dry_run, smoke_test=args.smoke_test)
 
 
 if __name__ == "__main__":

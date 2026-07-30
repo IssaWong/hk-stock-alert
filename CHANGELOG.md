@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## 2026-07-30 — 第二輪深度優化
+
+### Reliability
+
+- 新增全天候 `--smoke-test`，以最近交易日行情驗證全部 10 隻股票。
+- 新增 20 分鐘陳舊行情門禁。
+- 新增多渠道通知續傳，部分成功後只重試失敗渠道。
+- validation 與 production 使用不同 concurrency group；validation 不再讀寫
+  production state cache。
+- cache 保存由 `always()` 改為排除已取消 run。
+
+### Supply chain
+
+- Actions 固定至完整 commit SHA。
+- 新增 Python 3.11／3.12 CI 與每週 Dependabot。
+- `requests` 由 2.32.5 升至 2.34.2。
+
+### Validation
+
+- 單元測試由 22 項增加至 26 項，全部通過。
+- 2026-07-30 20:16 HKT 真實 smoke test：10／10、0 errors、約 2.78 秒，
+  狀態文件未變。
+
 ## 2026-07-30 — 雲端接管與排程恢復
 
 ### Deployed

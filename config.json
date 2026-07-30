@@ -1,6 +1,7 @@
 {
   "timezone": "Asia/Hong_Kong",
   "default_hysteresis": 0.5,
+  "max_quote_delay_minutes": 20,
   "health_summary": {
     "enabled": true,
     "after": "15:50",
