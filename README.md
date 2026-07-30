@@ -47,6 +47,8 @@ python -m venv .venv
 ```
 
 `--dry-run` 會抓取及評估行情，但不發通知、不更新狀態。
+GitHub Actions 的手動執行頁亦提供 `dry_run` 選項，供雲端驗證使用；cron-job.org
+不傳此選項，因此正式排程仍會正常通知及保存狀態。
 
 ## 新增股票
 

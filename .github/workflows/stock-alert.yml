@@ -3,6 +3,12 @@ name: 股票波動告警監控
 on:
   # 主排程由 cron-job.org 每 2 分鐘觸發，避免與 GitHub schedule 雙重執行。
   workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 抓取及評估行情，但不發通知、不更新狀態
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -48,7 +54,13 @@ jobs:
           TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
-        run: python check_alerts.py
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ "$DRY_RUN" = "true" ]; then
+            python check_alerts.py --dry-run
+          else
+            python check_alerts.py
+          fi
 
       - name: Save state cache
         uses: actions/cache/save@v5
