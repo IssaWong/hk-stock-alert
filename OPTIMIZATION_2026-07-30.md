@@ -88,7 +88,8 @@ GitHub 官方說明：同一 concurrency group 默認只保留一個 pending run
 
 2026-07-30 實測顯示 CI workflow 可正常取得 runner，但舊告警 workflow 的 queued run
 無論普通取消、強制取消或停用／重啟均返回 GitHub 500。正式入口因此改為新文件
-`stock-alert-v2.yml`，建立新的 workflow ID；cron-job.org 必須同步改指向 v2。
+`stock-alert-v2.yml`，建立新的 workflow ID `323722497`。v2 雲端 smoke run
+`30542866973` 在 25 秒內成功取得 10／10 行情、0 errors，cron-job.org 亦已改指 v2。
 
 ### Actions Cache 仍不是正式狀態庫
 

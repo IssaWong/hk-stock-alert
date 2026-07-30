@@ -13,6 +13,8 @@
 - cache 保存由 `always()` 改為排除已取消 run。
 - 舊告警 workflow 的 queued run 無法取消且 GitHub 返回 500；正式入口更名為
   `stock-alert-v2.yml`，以新的 workflow ID 繞開損壞的舊佇列狀態。
+- v2 雲端 smoke run `30542866973` 在 25 秒內成功：10／10、0 errors；
+  cron-job.org job `7693116` 已改指 v2 並重新載入確認。
 
 ### Supply chain
 

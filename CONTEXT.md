@@ -76,6 +76,10 @@ GitHub 內建 `schedule` 已從本地接管版本移除，避免與外部排程�
 - 驗證與 production 使用不同 concurrency group，且驗證不接觸 production cache。
 - Actions 以完整 SHA 固定，新建 Python 3.11／3.12 CI 及每週 Dependabot。
 - 優化後 26／26 測試通過；20:16 HKT 真實 smoke test 為 10／10、0 errors。
+- 舊告警 workflow ID 出現無法取消的 GitHub 500 queued 狀態；正式入口更名為
+  `stock-alert-v2.yml` 並建立新 workflow ID `323722497`。
+- v2 雲端 run `30542866973` 在 25 秒內完成，10／10、0 errors；cron-job.org
+  job `7693116` 已改指 v2 並重新載入確認。
 
 ## 最高優先事項
 

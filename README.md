@@ -111,16 +111,19 @@ cron-job.org 另持有一個只用於觸發 workflow 的 GitHub 憑證。
 
 截至 2026-07-30 20:00 HKT：
 
-- 接管版本已經由 PR #1 及 PR #2 合併至 `main`，遠端 commit 為 `80c57fd`。
+- 接管及深度優化已透過 PR #1、#2、#4、#9 及 #10 合併至 `main`。
 - `股票波動告警監控 v2` 是正式入口；舊 workflow ID 因 GitHub 端無法取消的 queued
   狀態而退役。
 - cron-job.org job `7693116` 已啟用，排程已收窄至
-  `*/2 9-11,13-15 * * 1-5`；下一個正式窗口為 2026-07-31 09:00 HKT。
+  `*/2 9-11,13-15 * * 1-5`，dispatch URL 已改為 `stock-alert-v2.yml`；
+  下一個正式窗口為 2026-07-31 09:00 HKT。
 - cron 觸發憑證已換成只限本倉庫、只限 Actions 讀寫、90 日有效的 fine-grained
   PAT；舊的無到期日 classic PAT 已撤銷。新 PAT 到期日為 2026-10-28。
 - 新 PAT 的 workflow 讀取請求返回 HTTP 200，`dry_run=true` dispatch 返回
   HTTP 204，證明授權及觸發路徑可用。
-- 兩個雲端乾跑在 GitHub 接受後仍停留於 queued，未獲分配 job，故尚未取得新版
-  workflow 完整執行日誌。GitHub Status 當時顯示 Actions 正常，需持續觀察。
+- v2 雲端 smoke run `30542866973` 已在 25 秒內成功：10／10 股票、
+  `yfinance-batch`、0 errors；validation 正確跳過 production cache。
+- 舊 workflow ID 的四個 queued run 仍無法取消，GitHub 普通／強制取消均返回 500；
+  它們只屬已退役入口，不再接收 cron dispatch。
 - PushPlus、Telegram 及可能影響其他 job 的 cron-job.org 全局 API key 尚未輪換；
   在完成前不得稱全部憑證整改完成。
