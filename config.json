@@ -1,5 +1,16 @@
 {
   "timezone": "Asia/Hong_Kong",
+  "default_hysteresis": 0.5,
+  "health_summary": {
+    "enabled": true,
+    "after": "15:50",
+    "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"]
+  },
+  "system_alert": {
+    "enabled": true,
+    "cooldown_minutes": 30,
+    "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"]
+  },
   "stocks": [
     {
       "code": "9926.HK",

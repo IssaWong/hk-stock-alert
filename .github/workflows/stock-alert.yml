@@ -1,20 +1,24 @@
-name: 港股告警監控
+name: 股票波動告警監控
 
 on:
-  schedule:
-    # HKT = UTC+8，覆蓋港股交易時段 09:30–16:00 HKT
-    - cron: '30,45 1 * * 1-5'              # 09:30, 09:45 HKT
-    - cron: '0,15,30,45 2,3,4,5,6,7 * * 1-5'  # 10:00–15:45 HKT
-    - cron: '0 8 * * 1-5'                  # 16:00 HKT
-  workflow_dispatch:                        # 手動觸發（測試用）
+  # 主排程由 cron-job.org 每 2 分鐘觸發，避免與 GitHub schedule 雙重執行。
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: stock-alert-production
+  cancel-in-progress: false
 
 jobs:
   check-alerts:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get HKT date/timestamp
         id: today
@@ -23,7 +27,7 @@ jobs:
           echo "ts=$(TZ='Asia/Hong_Kong' date +%Y-%m-%d-%H%M)" >> $GITHUB_OUTPUT
 
       - name: Restore state cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: state/
           key: state-${{ steps.today.outputs.ts }}
@@ -31,13 +35,13 @@ jobs:
             state-${{ steps.today.outputs.date }}-
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: pip
 
       - name: Install dependencies
-        run: pip install -r requirements.txt
+        run: pip install --disable-pip-version-check -r requirements.txt
 
       - name: Run alert check
         env:
@@ -47,7 +51,7 @@ jobs:
         run: python check_alerts.py
 
       - name: Save state cache
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: always()
         with:
           path: state/
