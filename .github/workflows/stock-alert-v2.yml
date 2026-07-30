@@ -1,4 +1,4 @@
-name: 股票波動告警監控
+name: 股票波動告警監控 v2
 
 on:
   # 主排程由 cron-job.org 每 2 分鐘觸發，避免與 GitHub schedule 雙重執行。

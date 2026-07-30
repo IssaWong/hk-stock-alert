@@ -86,6 +86,10 @@ GitHub 官方說明：同一 concurrency group 默認只保留一個 pending run
 最穩定方案是遷移至香港或鄰近地區的小型常駐主機，由 systemd timer／cron 直接運行，
 並使用專用持久化儲存；這會新增主機成本、監控及備份責任，未在本輪擅自引入。
 
+2026-07-30 實測顯示 CI workflow 可正常取得 runner，但舊告警 workflow 的 queued run
+無論普通取消、強制取消或停用／重啟均返回 GitHub 500。正式入口因此改為新文件
+`stock-alert-v2.yml`，建立新的 workflow ID；cron-job.org 必須同步改指向 v2。
+
 ### Actions Cache 仍不是正式狀態庫
 
 現有 699 個 cache 合計只有約 45.9 MB，短期容量風險低；但 cache 不可變且會被淘汰，
