@@ -59,6 +59,7 @@ GitHub 官方說明：同一 concurrency group 默認只保留一個 pending run
 - GitHub Actions 由浮動 major tag 改為完整 commit SHA。
 - Dependabot 首輪結果經官方 release notes 核對後，升至 checkout 7.0.1、
   setup-python 7.0.0、cache 6.1.0。
+- 倉庫 Actions 權限已強制 `sha_pinning_required=true`。
 - 新增 Dependabot，每週檢查 pip 與 GitHub Actions。
 - `requests` 由 2.32.5 升至 2.34.2。
 

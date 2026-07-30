@@ -55,6 +55,7 @@ Dependabot。本地 26／26 測試與 10／10 真實 smoke test 通過；雲端�
 - 其中一個通知渠道失敗時，下一輪只重試未成功渠道。
 - validation 不阻塞 production，亦不讀寫 production state cache。
 - PR 由 Python 3.11／3.12 CI 驗證，第三方 Actions 固定至完整 SHA。
+- 倉庫已強制 `sha_pinning_required=true`，未固定 SHA 的 Action 不可執行。
 - v2 雲端 smoke test 10／10、0 errors，完整 job 日誌可查。
 - PushPlus 使用 HTTPS；HTTP／API 失敗不寫入成功去重狀態。
 - 系統錯誤通知按簽名及 30 分鐘冷卻去重；健康摘要每日最多一次。
