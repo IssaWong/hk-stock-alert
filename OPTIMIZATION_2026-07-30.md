@@ -45,9 +45,10 @@ Scope: 程式邏輯、通知一致性、GitHub Actions、依賴、測試、雲�
 
 ### P1 — 驗證與正式任務隔離
 
-乾跑、smoke test 與 production 改用不同 concurrency group；驗證任務可互相取代，
-但不會阻塞 production。驗證任務亦不再 restore／save production state cache。
-cache 保存條件由 `always()` 改為 `!cancelled()`，避免取消中的 job 繼續保存狀態。
+乾跑、smoke test 與 production 改用不同的 job-level concurrency group；每個驗證
+run 使用獨立 group，不會被舊 workflow-level 鎖阻塞，production 則以新的 `v2`
+group 串行。驗證任務亦不再 restore／save production state cache。cache 保存條件
+由 `always()` 改為 `!cancelled()`，避免取消中的 job 繼續保存狀態。
 
 GitHub 官方說明：同一 concurrency group 默認只保留一個 pending run，而 cache
 內容不可原地更新，只能以新 key 建立新 cache。
@@ -56,6 +57,8 @@ GitHub 官方說明：同一 concurrency group 默認只保留一個 pending run
 
 - 新增 Python 3.11／3.12 CI：配置、編譯及單元測試。
 - GitHub Actions 由浮動 major tag 改為完整 commit SHA。
+- Dependabot 首輪結果經官方 release notes 核對後，升至 checkout 7.0.1、
+  setup-python 7.0.0、cache 6.1.0。
 - 新增 Dependabot，每週檢查 pip 與 GitHub Actions。
 - `requests` 由 2.32.5 升至 2.34.2。
 
