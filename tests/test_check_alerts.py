@@ -57,6 +57,12 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "max_quote_delay_minutes"):
             check_alerts.validate_config(config)
 
+    def test_invalid_summary_ranking_limit_is_rejected(self):
+        config = copy.deepcopy(self.config)
+        config["health_summary"] = {"ranking_limit": 0}
+        with self.assertRaisesRegex(ValueError, "ranking_limit"):
+            check_alerts.validate_config(config)
+
 
 class TradingHoursTests(unittest.TestCase):
     def test_hk_market_sessions(self):
@@ -185,11 +191,12 @@ class BatchPriceTests(unittest.TestCase):
                 "High": [40.7, 41.2],
                 "Low": [39.9, 40.4],
                 "Close": [40.5, 41.0],
+                "Volume": [1000, 2000],
             },
             index=intraday_index,
         )
         daily_frame = pd.DataFrame(
-            {"Close": [39.0, 41.0]},
+            {"Close": [39.0, 41.0], "Volume": [2500, 3000]},
             index=pd.DatetimeIndex(["2026-07-27", "2026-07-28"]),
         )
         intraday = pd.concat({code: intraday_frame}, axis=1)
@@ -205,6 +212,8 @@ class BatchPriceTests(unittest.TestCase):
         self.assertEqual(snapshot.day_high, 41.2)
         self.assertEqual(snapshot.delay_seconds, 120.0)
         self.assertEqual(snapshot.source, "yfinance-batch")
+        self.assertEqual(snapshot.day_volume, 3000)
+        self.assertEqual(snapshot.average_volume_5d, 2500)
 
     def test_snapshot_accepts_latest_session_outside_market_day(self):
         code = "2577.HK"
@@ -268,6 +277,63 @@ class HealthSummaryTests(unittest.TestCase):
         self.assertIn("成功覆蓋：1/2", message)
         self.assertIn("最大行情延遲：約 3.0 分鐘", message)
         self.assertIn("600487.SS×2", message)
+
+    def test_summary_includes_objective_watchlist_review(self):
+        config = {
+            "health_summary": {"ranking_limit": 2},
+            "stocks": [
+                {"code": "2577.HK", "name": "英諾賽科"},
+                {"code": "600487.SS", "name": "亨通光電"},
+                {"code": "301396.SZ", "name": "宏景科技"},
+            ],
+        }
+        state = {
+            "health": {
+                "successful_codes": ["2577.HK", "600487.SS", "301396.SZ"],
+                "latest_snapshots": {
+                    "2577.HK": {"change_pct": 5.7, "day_range_pct": 7.0},
+                    "600487.SS": {"change_pct": -1.2, "day_range_pct": 2.0},
+                    "301396.SZ": {"change_pct": 20.0, "day_range_pct": 20.5},
+                },
+            }
+        }
+        message = check_alerts.build_health_summary(
+            config,
+            state,
+            datetime(2026, 7, 31, 15, 50, tzinfo=HKT),
+        )
+        self.assertIn("漲幅前2：宏景科技 +20.00% ｜ 英諾賽科 +5.70%", message)
+        self.assertIn("表現末2：亨通光電 -1.20% ｜ 英諾賽科 +5.70%", message)
+        self.assertIn("日內振幅前2：宏景科技 20.50%", message)
+        self.assertIn("不構成投資建議", message)
+
+
+class MessageTests(unittest.TestCase):
+    def test_alert_message_contains_fact_base_and_volume_context(self):
+        snapshot = check_alerts.PriceSnapshot(
+            current=108,
+            previous_close=100,
+            day_open=102,
+            day_high=110,
+            day_low=99,
+            latest_bar_time=datetime(2026, 7, 31, 15, 30, tzinfo=HKT),
+            delay_seconds=60,
+            source="test",
+            day_volume=12_000_000,
+            average_volume_5d=10_000_000,
+        )
+        message = check_alerts.build_message(
+            "測試股",
+            "2577.HK",
+            {"id": "rise_5", "type": "rise_pct", "value": 5, "label": "升幅 +5%"},
+            snapshot,
+            8,
+            datetime(2026, 7, 31, 15, 31, tzinfo=HKT),
+        )
+        self.assertIn("事實底稿：開盤缺口 +2.00%", message)
+        self.assertIn("日內 +5.88%", message)
+        self.assertIn("當日區間位置 82%", message)
+        self.assertIn("近5日全日均量的 120%", message)
 
 
 class SystemAlertTests(unittest.TestCase):

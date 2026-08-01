@@ -1,6 +1,6 @@
 # HANDOFF | Stock Market Volatility Alert
 
-Last updated: 2026-07-30
+Last updated: 2026-08-01
 
 ## 接管決定
 
@@ -21,12 +21,18 @@ HTTP 204。
 
 本地 26 項測試、配置、依賴、編譯及 10／10 smoke test 通過。v2 雲端 smoke run
 `30542866973` 亦在 25 秒內完成：10／10、0 errors、production cache 未讀寫。
-新版雲端執行已驗收；下一個未決運行證據是 2026-07-31 首個正式交易窗口。
+新版雲端執行已驗收。2026-07-31 正式交易窗口已連續運行成功；
+15:50 HKT run `30614184565` 取得有效港股行情，並成功向 PushPlus 及
+Telegram 發送摘要。
 
 第二輪優化已新增全天候 `smoke_test`、20 分鐘陳舊行情門禁、部分通知續傳、
 validation／production 併發隔離、SHA 固定 Actions、Python 3.11／3.12 CI 及
 Dependabot。本地 26／26 測試與 10／10 真實 smoke test 通過；雲端結果以合併後
 最新 Actions run 為準。
+
+2026-08-01 參考 Vibe-Research 完成輕量融合：告警新增可核對的事實底稿，
+每日健康摘要升級為尾盤自選股復盤。沒有接入 LLM，不產出買賣建議。
+本地變更尚需以最新 GitHub CI 及雲端 smoke test 驗收後才能稱已部署。
 
 ## 接手順序
 
@@ -75,7 +81,7 @@ Dependabot。本地 26／26 測試與 10／10 真實 smoke test 通過；雲端�
   退役並由 v2 取代，不要把舊 run 當作現行 production 狀態。
 - 舊告警 workflow 的 queued run 無法普通或強制取消，GitHub 均返回 500；正式入口
   已換成 `.github/workflows/stock-alert-v2.yml`，舊 workflow ID 不再使用。
-- cron-job.org 下一個正式執行窗口為 2026-07-31 09:00 HKT；首輪正式通知與狀態
-  持久化仍待交易時段實證。
+- 2026-08-01 輕量投研上下文優化需完成 GitHub CI、雲端 smoke test 及下一個
+  交易日的真實告警／尾盤復盤驗證。
 - PushPlus、Telegram 舊憑證仍視為已暴露；cron-job.org 全局 API key 可能被其他
   job 共用，未確認影響範圍前不可直接撤銷。
