@@ -113,7 +113,7 @@ cron-job.org 另持有一個只用於觸發 workflow 的 GitHub 憑證。
 
 ## 目前雲端狀態
 
-截至 2026-07-30 20:00 HKT：
+截至 2026-08-01 23:38 HKT：
 
 - 接管及深度優化已透過 PR #1、#2、#4、#9 及 #10 合併至 `main`。
 - `股票波動告警監控 v2` 是正式入口；舊 workflow ID 因 GitHub 端無法取消的 queued
@@ -127,6 +127,10 @@ cron-job.org 另持有一個只用於觸發 workflow 的 GitHub 憑證。
   HTTP 204，證明授權及觸發路徑可用。
 - v2 雲端 smoke run `30542866973` 已在 25 秒內成功：10／10 股票、
   `yfinance-batch`、0 errors；validation 正確跳過 production cache。
+- Vibe-Research 輕量融合已透過 PR #13 合併至 `main` commit `74cc292`；
+  Python 3.11／3.12 CI 通過。
+- 合併後 smoke run `30706330156` 在 18 秒內成功：10／10、0 errors，
+  完整輸出尾盤復盤，並跳過 production cache 與通知。
 - 舊 workflow ID 的四個 queued run 仍無法取消，GitHub 普通／強制取消均返回 500；
   它們只屬已退役入口，不再接收 cron dispatch。
 - PushPlus、Telegram 及可能影響其他 job 的 cron-job.org 全局 API key 尚未輪換；

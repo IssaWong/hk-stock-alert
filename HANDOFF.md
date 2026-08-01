@@ -10,7 +10,7 @@ Last updated: 2026-08-01
 
 ## 當前狀態
 
-`DEPLOYED_V2_SMOKE_VALIDATED_SCHEDULER_ACTIVE_CREDENTIAL_ROTATION_PARTIAL`
+`DEPLOYED_VIBE_CONTEXT_SMOKE_VALIDATED_SCHEDULER_ACTIVE_CREDENTIAL_ROTATION_PARTIAL`
 
 接管與第二輪優化已部署至遠端 `main`。`股票波動告警監控 v2` workflow active，
 cron-job.org job `7693116` 已啟用、排程為 `*/2 9-11,13-15 * * 1-5`，URL 已改指
@@ -32,7 +32,9 @@ Dependabot。本地 26／26 測試與 10／10 真實 smoke test 通過；雲端�
 
 2026-08-01 參考 Vibe-Research 完成輕量融合：告警新增可核對的事實底稿，
 每日健康摘要升級為尾盤自選股復盤。沒有接入 LLM，不產出買賣建議。
-本地變更尚需以最新 GitHub CI 及雲端 smoke test 驗收後才能稱已部署。
+PR #13 已合併至 `main` commit `74cc292`；Python 3.11／3.12 CI 全通過。
+合併後雲端 smoke run `30706330156` 在 18 秒內完成：10／10、
+0 errors、完整復盤預覽，且 production cache 讀寫與通知均被跳過。
 
 ## 接手順序
 
@@ -65,6 +67,8 @@ Dependabot。本地 26／26 測試與 10／10 真實 smoke test 通過；雲端�
 - v2 雲端 smoke test 10／10、0 errors，完整 job 日誌可查。
 - PushPlus 使用 HTTPS；HTTP／API 失敗不寫入成功去重狀態。
 - 系統錯誤通知按簽名及 30 分鐘冷卻去重；健康摘要每日最多一次。
+- 告警事實底稿包含開盤缺口、日內走勢、區間位置及成交量背景。
+- 尾盤復盤可列出漲幅前三、表現末三與振幅前三，並明示非投資建議。
 - cron 觸發 PAT 已更新且舊 PAT 已撤銷；通知 Token 及全局 API key 仍待處理。
 - Git 追蹤文件與歷史掃描沒有明文秘密。
 
@@ -81,7 +85,7 @@ Dependabot。本地 26／26 測試與 10／10 真實 smoke test 通過；雲端�
   退役並由 v2 取代，不要把舊 run 當作現行 production 狀態。
 - 舊告警 workflow 的 queued run 無法普通或強制取消，GitHub 均返回 500；正式入口
   已換成 `.github/workflows/stock-alert-v2.yml`，舊 workflow ID 不再使用。
-- 2026-08-01 輕量投研上下文優化需完成 GitHub CI、雲端 smoke test 及下一個
-  交易日的真實告警／尾盤復盤驗證。
+- 2026-08-01 輕量投研上下文優化已通過 CI 及雲端 smoke test；下一個交易日
+  仍需觀察真實告警文案與 15:50 尾盤復盤的通知效果。
 - PushPlus、Telegram 舊憑證仍視為已暴露；cron-job.org 全局 API key 可能被其他
   job 共用，未確認影響範圍前不可直接撤銷。
