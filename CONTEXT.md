@@ -1,6 +1,6 @@
 # CONTEXT | Stock Market Volatility Alert
 
-Last updated: 2026-07-30
+Last updated: 2026-08-01
 
 ## 維護權責
 
@@ -80,6 +80,14 @@ GitHub 內建 `schedule` 已從本地接管版本移除，避免與外部排程�
   `stock-alert-v2.yml` 並建立新 workflow ID `323722497`。
 - v2 雲端 run `30542866973` 在 25 秒內完成，10／10、0 errors；cron-job.org
   job `7693116` 已改指 v2 並重新載入確認。
+
+## 2026-08-01 輕量投研上下文優化
+
+- 參考 `simonlin1212/Vibe-Research` 的「事實底稿先行、每日復盤、不代替投資決策」原則。
+- 不引入 FastAPI、React、LLM、財報／新聞大量數據源，保留兩分鐘告警的低延遲與低維護定位。
+- 告警新增開盤缺口、日內漲跌、當日區間位置及成交量對比。
+- 健康摘要升級為尾盤復盤，附漲幅前三、表現末三及振幅前三。
+- 復盤只使用當日狀態快取的最近成功行情，明示 Yahoo Finance 為延遲數據且不構成投資建議。
 
 ## 最高優先事項
 

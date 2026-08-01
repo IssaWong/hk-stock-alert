@@ -33,6 +33,8 @@ class PriceSnapshot:
     latest_bar_time: datetime
     delay_seconds: float
     source: str
+    day_volume: Optional[float] = None
+    average_volume_5d: Optional[float] = None
 
 
 def load_config(path: Path = CONFIG_FILE) -> Dict[str, Any]:
@@ -58,6 +60,15 @@ def validate_config(config: Dict[str, Any]) -> None:
         channels = section.get("notify")
         if not isinstance(channels, list) or not channels:
             raise ValueError(f"{section_name}.notify 至少需要一個通知渠道")
+
+    summary = config.get("health_summary", {})
+    ranking_limit = summary.get("ranking_limit", 3)
+    if (
+        not isinstance(ranking_limit, int)
+        or isinstance(ranking_limit, bool)
+        or not 1 <= ranking_limit <= 5
+    ):
+        raise ValueError("health_summary.ranking_limit 必須是 1 至 5 的整數")
 
     cooldown = config.get("system_alert", {}).get("cooldown_minutes", 30)
     if (
@@ -194,6 +205,9 @@ def get_price(
                 latest_bar_time=latest_bar_time,
                 delay_seconds=max(0.0, (now - latest_bar_time).total_seconds()),
                 source="yfinance-single-fallback",
+                day_volume=float(history["Volume"].fillna(0).sum())
+                if "Volume" in history
+                else None,
             )
             values = (
                 snapshot.current,
@@ -258,6 +272,20 @@ def _snapshot_from_frames(
         raise RuntimeError("沒有上一交易日收盤價")
 
     latest_bar_time = today_rows.index[-1].to_pydatetime()
+    day_volume = (
+        float(today_rows["Volume"].fillna(0).sum())
+        if "Volume" in today_rows
+        else None
+    )
+    previous_volumes = (
+        previous_rows["Volume"].dropna()
+        if "Volume" in previous_rows
+        else pd.Series(dtype=float)
+    )
+    previous_volumes = previous_volumes[previous_volumes > 0].tail(5)
+    average_volume_5d = (
+        float(previous_volumes.mean()) if not previous_volumes.empty else None
+    )
     snapshot = PriceSnapshot(
         current=float(today_rows["Close"].iloc[-1]),
         previous_close=float(previous_rows["Close"].iloc[-1]),
@@ -267,6 +295,8 @@ def _snapshot_from_frames(
         latest_bar_time=latest_bar_time,
         delay_seconds=max(0.0, (now - latest_bar_time).total_seconds()),
         source="yfinance-batch",
+        day_volume=day_volume,
+        average_volume_5d=average_volume_5d,
     )
     values = (
         snapshot.current,
@@ -308,7 +338,7 @@ def get_prices(
             )
             daily_data = yf.download(
                 code_list,
-                period="5d",
+                period="10d",
                 interval="1d",
                 auto_adjust=False,
                 prepost=False,
@@ -439,6 +469,18 @@ def build_message(
         emoji = "🚀"
 
     sign = "+" if change_pct >= 0 else ""
+    gap_pct = (
+        (snapshot.day_open - snapshot.previous_close)
+        / snapshot.previous_close
+        * 100
+    )
+    intraday_pct = (snapshot.current - snapshot.day_open) / snapshot.day_open * 100
+    day_range = snapshot.day_high - snapshot.day_low
+    range_position = (
+        (snapshot.current - snapshot.day_low) / day_range * 100
+        if day_range > 0
+        else 50.0
+    )
     lines = [
         f"{emoji} {name} ({code})",
         "",
@@ -450,7 +492,21 @@ def build_message(
             f"低 {currency}{snapshot.day_low:.3f}"
         ),
         f"📌 昨日收盤：{currency}{snapshot.previous_close:.3f}",
+        (
+            f"🧭 事實底稿：開盤缺口 {gap_pct:+.2f}% ｜ "
+            f"日內 {intraday_pct:+.2f}% ｜ 當日區間位置 {range_position:.0f}%"
+        ),
     ]
+    if (
+        snapshot.day_volume is not None
+        and snapshot.average_volume_5d is not None
+        and snapshot.average_volume_5d > 0
+    ):
+        volume_ratio = snapshot.day_volume / snapshot.average_volume_5d * 100
+        lines.append(
+            f"📦 截至目前成交量：{_format_volume(snapshot.day_volume)}"
+            f"（近5日全日均量的 {volume_ratio:.0f}%）"
+        )
     if alert_type in ("price_above", "price_below"):
         target = alert["value"]
         distance_pct = (snapshot.current - target) / target * 100
@@ -464,6 +520,14 @@ def build_message(
         ]
     )
     return "\n".join(lines)
+
+
+def _format_volume(value: float) -> str:
+    if value >= 100_000_000:
+        return f"{value / 100_000_000:.2f}億"
+    if value >= 10_000:
+        return f"{value / 10_000:.1f}萬"
+    return f"{value:.0f}"
 
 
 def send_telegram(message: str) -> bool:
@@ -603,6 +667,7 @@ def _health_state(state: Dict[str, Any]) -> Dict[str, Any]:
     health.setdefault("fetch_failures", {})
     health.setdefault("notifications", 0)
     health.setdefault("max_delay_seconds", 0.0)
+    health.setdefault("latest_snapshots", {})
     health.setdefault("summary_sent", False)
     health.setdefault("last_error_signature", None)
     health.setdefault("last_error_notified_at", None)
@@ -620,6 +685,22 @@ def _record_fetch_success(
         float(health["max_delay_seconds"]),
         snapshot.delay_seconds,
     )
+    change_pct = (
+        (snapshot.current - snapshot.previous_close) / snapshot.previous_close * 100
+    )
+    day_range_pct = (
+        (snapshot.day_high - snapshot.day_low) / snapshot.previous_close * 100
+    )
+    health["latest_snapshots"][code] = {
+        "current": snapshot.current,
+        "previous_close": snapshot.previous_close,
+        "change_pct": change_pct,
+        "day_range_pct": day_range_pct,
+        "day_volume": snapshot.day_volume,
+        "average_volume_5d": snapshot.average_volume_5d,
+        "latest_bar_time": snapshot.latest_bar_time.isoformat(),
+        "source": snapshot.source,
+    }
 
 
 def _record_fetch_failure(health: Dict[str, Any], code: str) -> None:
@@ -653,7 +734,7 @@ def build_health_summary(
     max_delay_minutes = float(health["max_delay_seconds"]) / 60
     status = "✅ 正常" if not missing and not failures else "⚠️ 需要注意"
     lines = [
-        f"📋 股票告警每日健康摘要 — {status}",
+        f"📋 股票告警尾盤復盤 — {status}",
         "",
         f"📅 日期：{now.strftime('%Y-%m-%d')}",
         f"🔄 執行次數：{health['runs']}",
@@ -662,6 +743,8 @@ def build_health_summary(
         f"🔔 告警通知：{health['notifications']} 次",
         f"❌ 行情失敗：{failure_total} 次",
     ]
+    if config.get("health_summary", {}).get("include_watchlist_review", True):
+        lines.extend(_build_watchlist_review_lines(config, health))
     if missing:
         lines.append(f"⚠️ 今日未成功覆蓋：{', '.join(missing)}")
     if failures:
@@ -669,8 +752,60 @@ def build_health_summary(
             f"{code}×{count}" for code, count in sorted(failures.items())
         )
         lines.append(f"🧾 失敗明細：{details}")
-    lines.append(f"⏰ 摘要時間：{now.strftime('%H:%M %Z')}")
+    lines.extend(
+        [
+            f"⏰ 摘要時間：{now.strftime('%H:%M %Z')}",
+            "ℹ️ 客觀延遲行情快照，僅作個人監控，不構成投資建議。",
+        ]
+    )
     return "\n".join(lines)
+
+
+def _build_watchlist_review_lines(
+    config: Dict[str, Any],
+    health: Dict[str, Any],
+) -> List[str]:
+    snapshots = health.get("latest_snapshots", {})
+    names = {
+        stock["code"]: stock.get("name", stock["code"])
+        for stock in config["stocks"]
+    }
+    records = [
+        (code, names.get(code, code), snapshot)
+        for code, snapshot in snapshots.items()
+        if code in names and isinstance(snapshot.get("change_pct"), (int, float))
+    ]
+    if not records:
+        return ["", "📊 自選股復盤：尚無可用行情快照"]
+
+    limit = int(config.get("health_summary", {}).get("ranking_limit", 3))
+    gainers = sorted(records, key=lambda item: item[2]["change_pct"], reverse=True)[
+        :limit
+    ]
+    laggards = sorted(records, key=lambda item: item[2]["change_pct"])[:limit]
+    ranges = sorted(
+        records,
+        key=lambda item: item[2].get("day_range_pct", 0),
+        reverse=True,
+    )[:limit]
+
+    def format_changes(items: List[Tuple[str, str, Dict[str, Any]]]) -> str:
+        return " ｜ ".join(
+            f"{name} {snapshot['change_pct']:+.2f}%"
+            for _, name, snapshot in items
+        )
+
+    range_text = " ｜ ".join(
+        f"{name} {snapshot.get('day_range_pct', 0):.2f}%"
+        for _, name, snapshot in ranges
+    )
+    return [
+        "",
+        f"📊 自選股復盤（最近成功快照 {len(records)}/{len(names)}）",
+        f"📈 漲幅前{len(gainers)}：{format_changes(gainers)}",
+        f"📉 表現末{len(laggards)}：{format_changes(laggards)}",
+        f"🌊 日內振幅前{len(ranges)}：{range_text}",
+    ]
 
 
 def _error_signature(errors: Iterable[str]) -> str:
@@ -912,7 +1047,7 @@ def run(dry_run: bool = False, smoke_test: bool = False) -> int:
 
     if _health_summary_due(config, state, now):
         summary_config = config["health_summary"]
-        title = f"📋 股票告警健康摘要 {today}"
+        title = f"📋 股票告警尾盤復盤 {today}"
         message = build_health_summary(config, state, now)
         if dry_run:
             print("DRY RUN health summary:")
@@ -920,7 +1055,11 @@ def run(dry_run: bool = False, smoke_test: bool = False) -> int:
         elif notify(summary_config["notify"], title, message):
             health["summary_sent"] = True
         else:
-            errors.append("每日健康摘要通知失敗")
+            errors.append("尾盤復盤通知失敗")
+
+    if smoke_test:
+        print("SMOKE TEST watchlist review:")
+        print(build_health_summary(config, state, now))
 
     if errors and _system_alert_due(config, state, errors, now):
         alert_config = config["system_alert"]

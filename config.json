@@ -5,6 +5,8 @@
   "health_summary": {
     "enabled": true,
     "after": "15:50",
+    "include_watchlist_review": true,
+    "ranking_limit": 3,
     "notify": ["PUSHPLUS_TOKEN", "TELEGRAM"]
   },
   "system_alert": {
