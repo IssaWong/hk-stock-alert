@@ -63,3 +63,11 @@ A 股收市後的數據來自早前最近成功快照；港股為 15:50 HKT 附�
 | 復盤預覽 | 無 | 完整產生 |
 
 新增功能沒有寫入實際狀態、沒有發送通知，已透過 `--smoke-test` 進行週末真實行情驗證。
+
+### 雲端部署證據
+
+- PR #13 的 Python 3.11 與 3.12 CI 均通過。
+- PR #13 合併至 `main` commit `74cc292`。
+- 合併後 GitHub Actions run `30706330156` 在 18 秒內完成。
+- 10／10 股票由 `yfinance-batch` 成功取得，0 errors。
+- 新尾盤復盤完整產生；smoke mode 沒有讀寫 production cache，也沒有發送通知。
